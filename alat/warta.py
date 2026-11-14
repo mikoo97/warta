@@ -573,7 +573,7 @@ def html_baca(ed, sblm, brkt, atur, v):
         foto = json.loads((folder / "foto.json").read_text(encoding="utf-8"))
         for i, (fid, nama) in enumerate(foto, 1):
             malas = "" if i == 1 else ' loading="lazy"'
-            hal.append(f'<div class="hal" style="--latar:url({FOTO.format(id=fid, px=24)})"><img src="{FOTO.format(id=fid, px=1600)}" data-b="{FOTO.format(id=fid, px=2600)}" '
+            hal.append(f'<div class="hal"><i class="latar" style="background-image:url({FOTO.format(id=fid, px=24)})"></i><img src="{FOTO.format(id=fid, px=1600)}" data-b="{FOTO.format(id=fid, px=2600)}" '
                        f'data-u="{UNDUH_DRIVE.format(id=fid)}" data-n="{e(nama)}" alt="Foto {i} dari {n}" '
                        f'decoding="async" referrerpolicy="no-referrer"{malas}></div>')
             mini.append(f'<li><button type="button" data-ke="{i}"><img src="{FOTO.format(id=fid, px=240)}" loading="lazy" '
