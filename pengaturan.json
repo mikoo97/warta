@@ -6,5 +6,7 @@
   "hak_cipta": "Yemiko",
   "alamat_situs": "https://warta.masmik.id",
   "repo": "mikoo97/warta",
-  "cabang": "main"
+  "cabang": "main",
+  "penjaga": "https://penjaga-warta.netlify.app/.netlify/functions/penjaga",
+  "google_client_id": "851521026935-hsv76m8edipmmiob99lrvsek5okubt5h.apps.googleusercontent.com"
 }
