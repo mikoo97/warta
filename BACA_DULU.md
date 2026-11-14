@@ -1,8 +1,8 @@
 # Warta Flipbook — GKJW Jemaat Tempursari
 
-Situs: https://mikoo97.github.io/warta/
-Panel pengelola: https://mikoo97.github.io/warta/kelola/
-Tautan tetap ke warta terbaru: https://mikoo97.github.io/warta/terbaru/
+Situs: https://warta.masmik.id/
+Panel pengelola: https://warta.masmik.id/kelola/
+Tautan tetap ke warta terbaru: https://warta.masmik.id/terbaru/
 
 ## Menerbitkan (tiap minggu)
 
