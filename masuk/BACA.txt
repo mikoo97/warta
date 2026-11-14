@@ -1,0 +1,1 @@
+Folder antrean. Halaman Kelola menaruh unggahan di sini; server mengosongkannya setelah diproses.

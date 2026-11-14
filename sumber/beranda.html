@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="id" data-kain="{{kain}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{judul_tab}}</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Warta jemaat mingguan dan dokumen {{nama_gereja}}.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{nama_gereja}}">
+<meta property="og:locale" content="id_ID">
+<meta property="og:title" content="{{judul_tab}}">
+<meta property="og:description" content="Warta jemaat mingguan dan arsipnya.">
+<meta property="og:image" content="{{og_gambar}}">
+{{og_url}}
+<meta name="theme-color" content="{{warna_tema}}">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="aset/ikon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="aset/ikon-192.png">
+<link rel="preload" href="aset/fon/atkinson-next.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="aset/fon/young-serif.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="aset/gaya.css?v={{v}}">
+</head>
+<body class="beranda">
+
+<header class="kain">
+  <div class="lebar">
+    <p class="merek"><img src="aset/simbol.svg" alt="" width="26" height="28">{{pengelola}}</p>
+    {{sorot}}
+  </div>
+</header>
+
+<main class="lebar arsip" id="arsip">
+  <div class="arsip-kepala">
+    <h2>Arsip</h2>
+    <p class="arsip-jumlah"><span id="jumlah">{{jumlah}}</span> terbitan tersimpan</p>
+  </div>
+
+  <form class="cari" role="search" onsubmit="return false">
+    <label for="kotak-cari">Cari isi warta dan dokumen</label>
+    <div class="cari-kotak">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+      <input type="search" id="kotak-cari" placeholder="Misalnya: baptis, natal, atau nama" autocomplete="off" enterkeyhint="search">
+    </div>
+  </form>
+
+  <div class="saring">
+    <div class="keping" role="group" aria-label="Jenis terbitan" {{sembunyi_keping}}>{{keping}}</div>
+    <label class="pilih-tahun">Tahun
+      <select id="pilih-tahun"><option value="">Semua</option>{{pilih_tahun}}</select>
+    </label>
+  </div>
+
+  <div id="hasil-cari" class="hasil" hidden aria-live="polite"></div>
+
+  <div id="daftar">
+{{arsip}}
+  </div>
+  <p class="kosong-pesan" id="kosong" hidden>Tidak ada terbitan untuk pilihan ini. Ganti tahun atau jenisnya.</p>
+</main>
+
+<footer class="kaki lebar">
+  <p>Dikelola oleh {{pengelola}}. Warta ini untuk warga jemaat; mohon bagikan tautannya di lingkungan jemaat saja. <a href="kelola/">Kelola</a></p>
+  <p class="hak-cipta">{{hak_cipta}}</p>
+</footer>
+
+<script type="application/json" id="data">{{data}}</script>
+<script src="aset/arsip.js?v={{v}}" defer></script>
+</body>
+</html>

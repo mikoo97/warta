@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="id" data-kain="netral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kelola terbitan · {{pengelola}}</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#213040">
+<link rel="icon" href="../aset/ikon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../aset/gaya.css?v={{v}}">
+</head>
+<body class="kelola">
+
+<header class="palang">
+  <a class="kembali" href="../">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Lihat situs</span>
+  </a>
+  <div class="palang-judul"><strong>Kelola terbitan</strong><span>{{pengelola}}</span></div>
+</header>
+
+<main class="lebar sempit">
+
+  <!-- Masuk -->
+  <section id="bagian-masuk" hidden>
+    <h1>Masuk pengelola</h1>
+    <p class="pengantar">Halaman ini untuk tim yang mengunggah warta. Tempel kunci pengelola sekali saja; perangkat ini akan mengingatnya.</p>
+    <form id="form-masuk" class="formulir">
+      <label for="kunci">Kunci pengelola</label>
+      <input type="password" id="kunci" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
+      <button type="submit" class="tombol-kelola utama">Masuk</button>
+      <p class="pesan galat" id="galat-masuk" role="alert" hidden></p>
+    </form>
+    <details class="bantuan">
+      <summary>Belum punya kunci?</summary>
+      <ol>
+        <li>Masuk ke GitHub dengan akun pemilik situs, lalu buka <a id="tautan-token" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">halaman pembuatan token</a>.</li>
+        <li><b>Token name</b>: misalnya “Kelola warta”. <b>Expiration</b>: pilih masa berlaku yang diinginkan.</li>
+        <li><b>Repository access</b> → <i>Only select repositories</i> → pilih <code id="nama-repo">repo situs</code>.</li>
+        <li><b>Permissions</b> → <i>Repository permissions</i> → <b>Contents: Read and write</b>.</li>
+        <li>Klik <b>Generate token</b>, salin, lalu tempel di kotak di atas.</li>
+      </ol>
+      <p>Kunci ini seperti kata sandi: bagikan hanya ke sesama pengelola.</p>
+    </details>
+  </section>
+
+  <!-- Panel -->
+  <section id="bagian-panel" hidden>
+    <h1>Terbitkan baru</h1>
+    <form id="form-tambah" class="formulir">
+      <fieldset class="pilih-jenis">
+        <legend>Apa yang mau diterbitkan?</legend>
+        <label><input type="radio" name="jenis" value="warta" checked><span><b>Warta jemaat</b><small>PDF mingguan</small></span></label>
+        <label><input type="radio" name="jenis" value="dokumen"><span><b>Dokumen</b><small>PDF lain: liturgi, laporan</small></span></label>
+        <label><input type="radio" name="jenis" value="album"><span><b>Album foto</b><small>Folder Google Drive</small></span></label>
+      </fieldset>
+
+      <div id="isian-pdf">
+        <label for="berkas">Berkas PDF</label>
+        <input type="file" id="berkas" accept="application/pdf,.pdf">
+        <label for="drive-pdf" class="atau">atau tautan PDF di Google Drive</label>
+        <input type="url" id="drive-pdf" placeholder="https://drive.google.com/file/d/…" inputmode="url">
+      </div>
+
+      <div id="isian-album" hidden>
+        <label for="drive-folder">Tautan folder Google Drive</label>
+        <input type="url" id="drive-folder" placeholder="https://drive.google.com/drive/folders/…" inputmode="url">
+        <p class="petunjuk-isian">Folder harus dibagikan ke <b>“Siapa saja yang memiliki link”</b>. Foto tetap tersimpan di Drive: flipbook menampilkan versi ringan, dan jemaat mengunduh JPG aslinya.</p>
+      </div>
+
+      <div id="isian-judul" hidden>
+        <label for="judul">Judul <span class="opsional" id="judul-opsional"></span></label>
+        <input type="text" id="judul" maxlength="90" autocomplete="off">
+      </div>
+
+      <div>
+        <label for="tanggal">Tanggal <span class="opsional" id="tanggal-opsional"></span></label>
+        <input type="date" id="tanggal">
+        <p class="petunjuk-isian" id="petunjuk-tanggal"></p>
+      </div>
+
+      <button type="submit" class="tombol-kelola utama" id="tbl-terbit">Terbitkan</button>
+      <p class="pesan galat" id="galat-tambah" role="alert" hidden></p>
+    </form>
+
+    <div class="proses" id="proses" hidden aria-live="polite">
+      <h2 id="proses-judul">Sedang diterbitkan</h2>
+      <ol class="langkah">
+        <li id="l-unggah">Mengunggah ke server</li>
+        <li id="l-konversi">Mengubah menjadi flipbook <small>(biasanya 1–3 menit)</small></li>
+        <li id="l-tayang">Menayangkan di situs</li>
+      </ol>
+      <p class="pesan" id="proses-pesan"></p>
+      <div class="hasil-terbit" id="hasil-terbit" hidden>
+        <p class="hasil-url" id="hasil-url"></p>
+        <div class="hasil-tombol">
+          <button type="button" class="tombol-kelola utama" id="hasil-salin">Salin tautan</button>
+          <a class="tombol-kelola wa" id="hasil-wa" target="_blank" rel="noopener">Kirim ke WhatsApp</a>
+          <a class="tombol-kelola" id="hasil-buka" target="_blank" rel="noopener">Buka</a>
+        </div>
+      </div>
+      <button type="button" class="tombol-kelola" id="tbl-lagi" hidden>Terbitkan yang lain</button>
+    </div>
+
+    <h2 class="jdl-daftar">Sudah terbit</h2>
+    <p class="pesan" id="pesan-daftar">Memuat daftar…</p>
+    <ul class="daftar-terbit" id="daftar-terbit"></ul>
+
+    <p class="keluar"><button type="button" class="tautan-tombol" id="tbl-keluar">Keluar dari perangkat ini</button></p>
+  </section>
+
+  <section id="bagian-belum" hidden>
+    <h1>Belum terhubung</h1>
+    <p class="pengantar">Situs ini belum dihubungkan ke server penyimpanan, jadi unggahan belum bisa dilakukan dari sini.</p>
+  </section>
+  <p class="hak-cipta">{{hak_cipta}}</p>
+</main>
+
+<script type="application/json" id="data">{{data}}</script>
+<script src="../aset/kelola.js?v={{v}}" defer></script>
+</body>
+</html>

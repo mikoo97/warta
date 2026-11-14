@@ -1,0 +1,59 @@
+# Mengubah unggahan dari halaman Kelola menjadi flipbook, lalu menayangkan situs.
+name: Terbitkan
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "masuk/*.json"
+      - "sumber/**"
+      - "alat/**"
+      - "pengaturan.json"
+      - "data/edisi.json"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# Satu per satu, supaya dua unggahan berdekatan tidak saling menimpa
+concurrency:
+  group: terbit
+  cancel-in-progress: false
+
+jobs:
+  terbit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Jakarta
+    environment:
+      name: github-pages
+      url: ${{ steps.tayang.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: alat/requirements.txt
+      - run: pip install -r alat/requirements.txt
+      - name: Proses antrean dan bangun situs
+        run: python alat/warta.py proses
+      - name: Simpan hasil ke repo
+        run: |
+          git config user.name "warta-bot"
+          git config user.email "warta-bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Terbitkan (otomatis)"
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: situs
+      - id: tayang
+        uses: actions/deploy-pages@v4

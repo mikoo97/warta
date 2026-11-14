@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id" data-kain="{{kain}}" data-jenis="{{jenis}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{{judul_tab}}</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="{{og_desk}}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="{{nama_gereja}}">
+<meta property="og:locale" content="id_ID">
+<meta property="og:title" content="{{og_judul}}">
+<meta property="og:description" content="{{og_desk}}">
+<meta property="og:image" content="{{og_gambar}}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{{og_url}}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="{{warna_tema}}">
+<link rel="manifest" href="{{akar}}manifest.webmanifest">
+<link rel="icon" href="{{akar}}aset/ikon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{akar}}aset/ikon-192.png">
+<link rel="preload" href="{{akar}}aset/fon/atkinson-next.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{akar}}aset/gaya.css?v={{v}}">
+</head>
+<body class="baca">
+
+<header class="palang">
+  <a class="kembali" href="{{akar}}" aria-label="Kembali ke arsip">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span>Arsip</span>
+  </a>
+  <div class="palang-judul">
+    <strong>{{judul}}</strong>
+    <span>{{sub}}</span>
+  </div>
+  <button type="button" class="ikon-saja" id="tbl-layar" aria-label="Layar penuh" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+</header>
+
+<main class="panggung" id="panggung">
+  <div class="lensa" id="lensa">
+    <div class="buku" id="buku">
+      {{halaman}}
+    </div>
+  </div>
+  <button type="button" class="panah kiri" id="panah-sblm" aria-label="Halaman sebelumnya">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <button type="button" class="panah kanan" id="panah-brkt" aria-label="Halaman berikutnya">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
+  <p class="petunjuk" id="petunjuk" hidden></p>
+</main>
+
+<footer class="kendali">
+  <div class="geser">
+    <button type="button" class="ikon-saja" id="tbl-sblm" aria-label="Halaman sebelumnya">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <input type="range" id="penggeser" min="1" max="{{n}}" value="1" step="1" aria-label="Pindah halaman">
+    <output id="nomor" for="penggeser">1 / {{n}}</output>
+    <button type="button" class="ikon-saja" id="tbl-brkt" aria-label="Halaman berikutnya">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+  <nav class="tombol" aria-label="Alat">
+    <button type="button" id="tbl-hal">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v7H4zM14 4h6v7h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg><span>Halaman</span>
+    </button>
+    <button type="button" id="tbl-zoom" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21M10.5 7.5v6M7.5 10.5h6"/></svg><span>Perbesar</span>
+    </button>
+    {{unduh}}
+    <button type="button" id="tbl-bagi">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="5.5" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg><span>Bagikan</span>
+    </button>
+  </nav>
+</footer>
+
+<dialog class="lembar" id="lembar-hal" aria-labelledby="jdl-hal">
+  <div class="lembar-kepala">
+    <h2 id="jdl-hal">{{judul_lembar}}</h2>
+    <button type="button" class="tutup" data-tutup aria-label="Tutup">Tutup</button>
+  </div>
+  <ol class="mini-grid">
+      {{mini}}
+  </ol>
+  <div class="tetangga-baris">{{catatan}}{{sblm}}{{brkt}}</div>
+</dialog>
+
+<dialog class="lembar kecil" id="lembar-bagi" aria-labelledby="jdl-bagi">
+  <div class="lembar-kepala">
+    <h2 id="jdl-bagi">Bagikan {{kata_bagi}}</h2>
+    <button type="button" class="tutup" data-tutup aria-label="Tutup">Tutup</button>
+  </div>
+  <div class="bagi-pilihan">
+    <a id="bagi-wa" target="_blank" rel="noopener">Kirim lewat WhatsApp</a>
+    <button type="button" id="bagi-salin">Salin tautan</button>
+  </div>
+  <p class="bagi-url" id="bagi-url"></p>
+</dialog>
+
+<dialog class="lembar kecil" id="lembar-unduh" aria-labelledby="jdl-unduh">
+  <div class="lembar-kepala">
+    <h2 id="jdl-unduh">Unduh foto yang mana?</h2>
+    <button type="button" class="tutup" data-tutup aria-label="Tutup">Tutup</button>
+  </div>
+  <div class="unduh-pilihan" id="unduh-pilihan"></div>
+</dialog>
+
+<script type="application/json" id="data">{{data}}</script>
+<script src="{{akar}}aset/page-flip.browser.js?v={{v}}" defer></script>
+<script src="{{akar}}aset/baca.js?v={{v}}" defer></script>
+</body>
+</html>
