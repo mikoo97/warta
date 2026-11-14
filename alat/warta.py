@@ -23,10 +23,13 @@ import hashlib
 import html
 import io
 import json
+import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
+import time
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -159,6 +162,57 @@ def ambil(url, batas_mb=80):
     return isi
 
 
+# ---------- laporan kemajuan ----------
+
+BERKAS_TUGAS = Path(os.environ.get("RUNNER_TEMP") or tempfile.gettempdir()) / "warta-tugas.json"
+
+
+def diam(persen, pesan):
+    """Pelapor bawaan saat dijalankan di komputer: cukup cetak."""
+    print(f"   [{int(persen):3d}%] {pesan}", flush=True)
+
+
+class Lapor:
+    """Kirim kemajuan yang sebenarnya ke GitHub (commit status pada komit unggahan),
+    supaya panel pengelola bisa menampilkan persen asli, bukan animasi kira-kira."""
+
+    def __init__(self, sha):
+        self.sha = sha
+        self.token = os.environ.get("GITHUB_TOKEN")
+        self.repo = os.environ.get("GITHUB_REPOSITORY")
+        self.terakhir, self.persen = 0.0, -1
+
+    def __call__(self, persen, pesan, keadaan="pending", url=None, paksa=False):
+        persen = max(0, min(100, int(persen)))
+        diam(persen, pesan)
+        if not (self.sha and self.token and self.repo):
+            return
+        kini = time.monotonic()
+        if not paksa and keadaan == "pending" and (persen == self.persen or kini - self.terakhir < 0.9):
+            return
+        self.terakhir, self.persen = kini, persen
+        isi = {"state": keadaan, "context": "flipbook", "description": f"{persen}|{pesan}"[:140]}
+        if url:
+            isi["target_url"] = url
+        req = urllib.request.Request(
+            f"https://api.github.com/repos/{self.repo}/statuses/{self.sha}", data=json.dumps(isi).encode("utf-8"),
+            method="POST", headers={"Authorization": f"Bearer {self.token}", "Accept": "application/vnd.github+json",
+                                    "Content-Type": "application/json", "User-Agent": "warta-flipbook"})
+        try:
+            urllib.request.urlopen(req, timeout=15).read()
+        except Exception as g:
+            print(f"   (laporan kemajuan tidak terkirim: {g})")
+
+
+def sha_tugas(berkas):
+    """Komit yang menambahkan berkas tugas ini; panel pengelola memantau status komit tersebut."""
+    try:
+        return subprocess.run(["git", "log", "-1", "--format=%H", "--", str(berkas)], cwd=AKAR,
+                              capture_output=True, text=True, timeout=30).stdout.strip() or None
+    except Exception:
+        return None
+
+
 # ---------- PDF -> terbitan ----------
 
 def tebak_meta(teks_hal, nama_berkas):
@@ -216,7 +270,7 @@ def sampul_tautan(gambar, tujuan, potong_tengah=False):
     hasil.save(tujuan, "JPEG", quality=84, optimize=True, progressive=True)
 
 
-def buat_gambar(doc, folder):
+def buat_gambar(doc, folder, maju=diam):
     """Ubah tiap halaman PDF jadi gambar WebP (layar, besar, kecil) + sampul pratinjau tautan."""
     import pymupdf
     from PIL import Image
@@ -237,6 +291,7 @@ def buat_gambar(doc, folder):
         ukuran.append([layar.width, layar.height])
         if i == 1:
             sampul_tautan(layar, folder / "sampul.jpg")
+        maju(15 + 67 * i / doc.page_count, f"Halaman {i} dari {doc.page_count}")
     return ukuran
 
 
@@ -254,7 +309,7 @@ def catat(edisi):
     return edisi
 
 
-def tambah_pdf(pdf, jenis="warta", nama_asli=None, **o):
+def tambah_pdf(pdf, jenis="warta", nama_asli=None, maju=diam, **o):
     try:
         import pymupdf
     except ImportError:
@@ -287,8 +342,8 @@ def tambah_pdf(pdf, jenis="warta", nama_asli=None, **o):
     warna = rapikan_warna(o.get("warna")) or meta.get("warna") or ("hijau" if jenis == "warta" else "netral")
 
     folder = siapkan_folder(slug)
-    print(f"Membuat gambar halaman ({doc.page_count} halaman)…")
-    ukuran = buat_gambar(doc, folder)
+    maju(15, f"Membuka PDF, {doc.page_count} halaman")
+    ukuran = buat_gambar(doc, folder, maju)
     nama_pdf = f"{slugkan(judul)}-{tanggal}.pdf" if jenis == "warta" else f"{slug}.pdf"
     shutil.copyfile(pdf, folder / nama_pdf)
     (folder / "teks.b64").write_text(sandi([re.sub(r"\s+", " ", t).strip() for t in teks_hal]), encoding="ascii")
@@ -343,18 +398,29 @@ def isi_folder_drive(fid):
     return judul, berkas
 
 
-def tambah_album(url, **o):
+def tambah_album(url, maju=diam, **o):
     from PIL import Image
     jenis_tautan = kenali_drive(url)
     if not jenis_tautan or jenis_tautan[0] != "folder":
         raise Galat("Album foto butuh tautan FOLDER Google Drive.")
+    maju(12, "Membaca folder Google Drive")
     judul_folder, berkas = isi_folder_drive(jenis_tautan[1])
     foto = [b for b in berkas if b["mime"].startswith("image/")]
     if not foto:
         raise Galat("Tidak ada foto di folder itu.")
+    semua = len(foto)
+    try:
+        batas = int(o.get("batas") or 0)
+    except ValueError:
+        batas = 0
+    if batas > 0:
+        foto = foto[:batas]
+    maju(25, f"{semua} foto ditemukan" + (f", dipakai {len(foto)} pertama" if len(foto) < semua else ""))
     lain = len(berkas) - len(foto)
 
-    judul = o.get("judul") or re.sub(r"\s+", " ", judul_folder).strip() or "Album foto"
+    nama_folder = re.sub(r"\s+", " ", judul_folder).strip()
+    judul = o.get("judul") or (nama_folder if nama_folder.lower().startswith("dokumentasi")
+                               else f"Dokumentasi {nama_folder}".strip())
     tanggal = o.get("tanggal") or dt.date.today().isoformat()
     try:
         tgl(tanggal)
@@ -371,8 +437,12 @@ def tambah_album(url, **o):
             return Image.open(io.BytesIO(ambil(FOTO.format(id=f["id"], px=200), 5))).size
         except Exception:
             return None
+    ukuran = []
     with ThreadPoolExecutor(6) as kolam:
-        ukuran = [u for u in kolam.map(ukur, contoh) if u]
+        for k, u in enumerate(kolam.map(ukur, contoh), 1):
+            if u:
+                ukuran.append(u)
+            maju(25 + 45 * k / len(contoh), f"Memeriksa foto {k} dari {len(contoh)} contoh")
     if not ukuran:
         raise Galat("Foto di folder itu tidak bisa ditampilkan. Pastikan folder dibagikan ke "
                     "'Siapa saja yang memiliki link'.")
@@ -383,6 +453,7 @@ def tambah_album(url, **o):
     hal = [1600, round(1600 / rasio)] if rasio >= 1 else [round(1600 * rasio), 1600]
 
     folder = siapkan_folder(slug)
+    maju(75, "Membuat sampul album")
     sampul = Image.open(io.BytesIO(ambil(FOTO.format(id=foto[0]["id"], px=1200), 20))).convert("RGB")
     sampul.save(folder / "01.webp", "WEBP", quality=76, method=6)
     kecil = sampul.copy()
@@ -390,6 +461,7 @@ def tambah_album(url, **o):
     kecil.save(folder / "01k.webp", "WEBP", quality=70, method=6)
     sampul_tautan(sampul, folder / "sampul.jpg", potong_tengah=True)
     simpan_json(folder / "foto.json", [[f["id"], f["nama"]] for f in foto], rapat=True)
+    maju(82, f"Album {len(foto)} foto tersusun")
 
     return catat({
         "slug": slug, "jenis": "album", "tanggal": tanggal, "judul": judul,
@@ -400,13 +472,14 @@ def tambah_album(url, **o):
     })
 
 
-def tambah_dari_drive(url, jenis, **o):
+def tambah_dari_drive(url, jenis, maju=diam, **o):
     """Tautan Drive: folder -> album foto; berkas -> PDF yang diunduh lalu dikonversi."""
     kenal = kenali_drive(url)
     if not kenal:
         raise Galat("Tautan Google Drive tidak dikenali. Salin tautan dari tombol Bagikan di Drive.")
     if kenal[0] == "folder":
-        return tambah_album(url, **o)
+        return tambah_album(url, maju=maju, **o)
+    maju(10, "Mengunduh PDF dari Google Drive")
     try:
         isi = ambil(UNDUH_DRIVE.format(id=kenal[1]))
     except Galat:
@@ -416,10 +489,11 @@ def tambah_dari_drive(url, jenis, **o):
     if not isi.startswith(b"%PDF"):
         raise Galat("Tautan itu bukan PDF (atau belum dibagikan ke 'Siapa saja yang memiliki link'). "
                     "Untuk foto, tempel tautan FOLDER-nya.")
+    o.pop("batas", None)
     with tempfile.TemporaryDirectory() as d:
         p = Path(d) / "dari-drive.pdf"
         p.write_bytes(isi)
-        return tambah_pdf(p, "dokumen" if jenis == "album" else jenis, **o)
+        return tambah_pdf(p, "dokumen" if jenis == "album" else jenis, maju=maju, **o)
 
 
 def hapus(slug):
@@ -530,11 +604,11 @@ def html_baca(ed, sblm, brkt, atur, v):
             "gereja": atur["nama_pendek"], "jenis": ed["jenis"]}
     return isi_templat("baca.html", {
         "akar": akar, "v": v, "kain": e(ed["warna"]), "jenis": e(ed["jenis"]), "warna_tema": KAIN[ed["warna"]],
-        "judul_tab": e(f"{judul_lengkap(ed)} · {atur['nama_pendek']}"),
+        "judul_tab": e(judul_lengkap(ed)),
         "judul": e(ed["judul"]),
         "sub": e(tgl_panjang(ed["tanggal"]) if ed["jenis"] == "warta" else tgl_panjang(ed["tanggal"], False)),
-        "og_judul": e(f"{judul_lengkap(ed)} — {atur['nama_pendek']}"),
-        "og_desk": e(desk), "og_gambar": e(gambar),
+        "og_judul": e(judul_lengkap(ed)),
+        "og_desk": e(atur["nama_gereja"]), "deskripsi": e(desk), "og_gambar": e(gambar),
         "og_url": f'<meta property="og:url" content="{e(url)}">' if url else "",
         "nama_gereja": e(atur["nama_gereja"]),
         "halaman": "\n      ".join(hal), "mini": "\n      ".join(mini),
@@ -708,27 +782,32 @@ def proses():
     atur = muat_atur()
     status = muat_json(BERKAS_STATUS, [])
     tugas = sorted(MASUK.glob("*.json")) if MASUK.exists() else []
+    catatan = []
     for berkas in tugas:
         kode = berkas.stem
         hasil = {"id": kode, "waktu": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
         lampiran = MASUK / f"{kode}.pdf"
+        sha = sha_tugas(berkas)
+        maju = Lapor(sha)
+        maju(10, "Server mulai mengerjakan", paksa=True)
         try:
             t = json.loads(berkas.read_text(encoding="utf-8"))
             aksi = t.get("aksi", "tambah")
             if aksi == "hapus":
                 hapus(str(t.get("slug", "")))
-                hasil.update(ok=True, pesan="Terbitan dihapus.", slug=t.get("slug"))
+                maju(82, "Terbitan dihapus dari arsip")
+                hasil.update(ok=True, pesan="Terbitan dihapus.", slug=t.get("slug"), aksi="hapus")
             elif aksi == "tambah":
                 jenis = t.get("jenis", "warta")
                 if jenis not in NAMA_JENIS:
                     raise Galat("Jenis terbitan tidak dikenal.")
-                o = {k: str(t[k]).strip() for k in ("judul", "tanggal", "warna", "nama_minggu", "tema", "bacaan")
+                o = {k: str(t[k]).strip() for k in ("judul", "tanggal", "warna", "nama_minggu", "tema", "bacaan", "batas")
                      if t.get(k)}
                 if t.get("drive"):
-                    ed = tambah_dari_drive(str(t["drive"]).strip(), jenis, **o)
+                    ed = tambah_dari_drive(str(t["drive"]).strip(), jenis, maju=maju, **o)
                 elif lampiran.exists():
                     ed = tambah_pdf(lampiran, "dokumen" if jenis == "album" else jenis,
-                                    nama_asli=t.get("nama_berkas"), **o)
+                                    nama_asli=t.get("nama_berkas"), maju=maju, **o)
                 else:
                     raise Galat("Tidak ada PDF maupun tautan Google Drive.")
                 hasil.update(ok=True, slug=ed["slug"], judul=judul_lengkap(ed), jenis=ed["jenis"],
@@ -741,17 +820,35 @@ def proses():
         except Exception as g:  # jangan sampai satu tugas rusak menghentikan yang lain
             hasil.update(ok=False, pesan=f"Gagal diproses ({type(g).__name__}: {g})")
         print(("OK   " if hasil["ok"] else "GAGAL"), kode, "-", hasil["pesan"])
+        if not hasil["ok"]:
+            maju(0, hasil["pesan"], keadaan="failure", paksa=True)
         status = [s for s in status if s["id"] != kode] + [hasil]
+        catatan.append({"sha": sha, "ok": hasil["ok"],
+                        "url": hasil.get("url") if hasil.get("aksi") != "hapus" else None})
         berkas.unlink()
         lampiran.unlink(missing_ok=True)
     simpan_json(BERKAS_STATUS, status[-30:])
+    simpan_json(BERKAS_TUGAS, catatan)
     bangun()
+    lapor_semua(86, "Arsip dan halaman situs tersusun")
+
+
+def lapor_semua(persen, pesan, keadaan="pending"):
+    """Laporkan satu tahap untuk semua tugas yang sedang berjalan (dipanggil juga dari alur kerja server)."""
+    if BERKAS_TUGAS.exists():
+        tugas = [t for t in muat_json(BERKAS_TUGAS, []) if t["ok"]]
+    else:  # sebelum `proses` berjalan: semua yang masih ada di antrean
+        tugas = [{"sha": sha_tugas(b), "url": None}
+                 for b in (sorted(MASUK.glob("*.json")) if MASUK.exists() else [])]
+    for t in tugas:
+        Lapor(t["sha"])(persen, pesan, keadaan=keadaan,
+                        url=t.get("url") if keadaan == "success" else None, paksa=True)
 
 
 # ---------- perintah ----------
 
 def cmd_tambah(a):
-    o = {k: getattr(a, k) for k in ("judul", "tanggal", "warna", "nama_minggu", "tema", "bacaan", "slug")
+    o = {k: getattr(a, k) for k in ("judul", "tanggal", "warna", "nama_minggu", "tema", "bacaan", "slug", "batas")
          if getattr(a, k)}
     if a.sumber.startswith("http"):
         ed = tambah_dari_drive(a.sumber, a.jenis, **o)
@@ -809,11 +906,17 @@ def main():
     t.add_argument("--tema")
     t.add_argument("--bacaan")
     t.add_argument("--slug")
+    t.add_argument("--batas", help="album: pakai sekian foto pertama saja")
     t.set_defaults(f=cmd_tambah)
 
     sub.add_parser("bangun", help="bangun ulang situs").set_defaults(f=lambda a: bangun())
     sub.add_parser("proses", help="kerjakan antrean masuk/ lalu bangun situs").set_defaults(f=lambda a: proses())
     sub.add_parser("daftar", help="lihat semua terbitan").set_defaults(f=cmd_daftar)
+    lp = sub.add_parser("lapor", help="(server) laporkan kemajuan tahap di luar konversi")
+    lp.add_argument("persen", type=int)
+    lp.add_argument("pesan")
+    lp.add_argument("--keadaan", choices=["pending", "success", "error"], default="pending")
+    lp.set_defaults(f=lambda a: lapor_semua(a.persen, a.pesan, a.keadaan))
     h = sub.add_parser("hapus", help="hapus satu terbitan")
     h.add_argument("slug")
     h.set_defaults(f=cmd_hapus)

@@ -16,6 +16,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  statuses: write
 
 # Satu per satu, supaya dua unggahan berdekatan tidak saling menimpa
 concurrency:
@@ -28,6 +29,7 @@ jobs:
     timeout-minutes: 20
     env:
       TZ: Asia/Jakarta
+      GITHUB_TOKEN: ${{ github.token }}
     environment:
       name: github-pages
       url: ${{ steps.tayang.outputs.page_url }}
@@ -35,6 +37,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+      # Tiap tahap melapor ke panel pengelola (persen asli, lewat commit status)
+      - run: python3 alat/warta.py lapor 6 "Server menyiapkan mesin"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -51,9 +55,13 @@ jobs:
           git diff --cached --quiet || git commit -m "Terbitkan (otomatis)"
           git pull --rebase origin main
           git push origin HEAD:main
+      - run: python alat/warta.py lapor 92 "Menayangkan di situs"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: situs
       - id: tayang
         uses: actions/deploy-pages@v4
+      - run: python alat/warta.py lapor 100 "Selesai" --keadaan success
+      - if: failure()
+        run: python3 alat/warta.py lapor 0 "Server gagal memproses. Coba terbitkan lagi." --keadaan error

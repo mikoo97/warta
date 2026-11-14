@@ -19,7 +19,7 @@
 <link rel="apple-touch-icon" href="aset/ikon-192.png">
 <link rel="preload" href="aset/fon/atkinson-next.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="aset/fon/young-serif.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="aset/gaya.css?v=4b175ca1">
+<link rel="stylesheet" href="aset/gaya.css?v=49d915f1">
 </head>
 <body class="beranda">
 
@@ -46,7 +46,7 @@
 <main class="lebar arsip" id="arsip">
   <div class="arsip-kepala">
     <h2>Arsip</h2>
-    <p class="arsip-jumlah"><span id="jumlah">1</span> terbitan tersimpan</p>
+    <p class="arsip-jumlah"><span id="jumlah">2</span> terbitan tersimpan</p>
   </div>
 
   <form class="cari" role="search" onsubmit="return false">
@@ -58,7 +58,7 @@
   </form>
 
   <div class="saring">
-    <div class="keping" role="group" aria-label="Jenis terbitan" hidden><button type="button" data-jenis="" aria-pressed="true">Semua</button><button type="button" data-jenis="warta" aria-pressed="false">Warta</button></div>
+    <div class="keping" role="group" aria-label="Jenis terbitan" ><button type="button" data-jenis="" aria-pressed="true">Semua</button><button type="button" data-jenis="warta" aria-pressed="false">Warta</button><button type="button" data-jenis="album" aria-pressed="false">Album foto</button></div>
     <label class="pilih-tahun">Tahun
       <select id="pilih-tahun"><option value="">Semua</option><option value="2026">2026</option></select>
     </label>
@@ -77,6 +77,16 @@
   </a>
 </li>
 </ul></section>
+<section class="bulan" data-tahun="2026"><h3>Juli <span>2026</span></h3><ul>
+<li class="baris" data-jenis="album" data-kain="netral">
+  <a href="e/dokumentasi-kalipinusan/">
+    <span class="tgl"><b>9</b><i>Jul</i></span>
+    <span class="isi"><strong>Dokumentasi Kalipinusan</strong><span class="ket">Album foto · 5 foto</span></span>
+    <span class="jml">5 foto</span>
+    <img class="mini" src="e/dokumentasi-kalipinusan/01k.webp" loading="lazy" alt="" width="795" height="1200">
+  </a>
+</li>
+</ul></section>
   </div>
   <p class="kosong-pesan" id="kosong" hidden>Tidak ada terbitan untuk pilihan ini. Ganti tahun atau jenisnya.</p>
 </main>
@@ -86,7 +96,7 @@
   <p class="hak-cipta">© 2026 Yemiko</p>
 </footer>
 
-<script type="application/json" id="data">{"tahun": [2026], "edisi": {"2026-11-15": ["Warta Jemaat 15 November 2026", "hijau", "warta"]}}</script>
-<script src="aset/arsip.js?v=4b175ca1" defer></script>
+<script type="application/json" id="data">{"tahun": [2026], "edisi": {"2026-11-15": ["Warta Jemaat 15 November 2026", "hijau", "warta"], "dokumentasi-kalipinusan": ["Dokumentasi Kalipinusan", "netral", "album"]}}</script>
+<script src="aset/arsip.js?v=49d915f1" defer></script>
 </body>
 </html>

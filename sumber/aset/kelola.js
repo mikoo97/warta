@@ -1,6 +1,8 @@
 /* Warta Flipbook — panel pengelola.
-   Unggahan ditaruh di folder masuk/ pada repo GitHub; server mengubahnya menjadi flipbook
-   lalu menulis hasilnya ke data/status.json. */
+   Laman 1: unggah.  Laman 2: mengunggah ke server (persen = byte terkirim), lalu mengubah jadi
+   flipbook (persen = laporan server per halaman).  Laman 3: flipbook-nya, dengan lembar bagikan.
+   Unggahan ditaruh di folder masuk/ pada repo GitHub; server mengerjakannya dan melaporkan
+   kemajuan sebagai "commit status" pada komit unggahan itu. */
 (function () {
   'use strict';
   var C = JSON.parse(document.getElementById('data').textContent);
@@ -18,19 +20,23 @@
   function ingat() { try { return localStorage.getItem(KUNCI); } catch (_) { return null; } }
   function b64teks(s) { return btoa(unescape(encodeURIComponent(s))); }
   function alamatSitus() { return C.situs || new URL('../', location.href).href.replace(/\/$/, ''); }
+  function mb(b) { return (b / 1048576).toFixed(b < 10485760 ? 1 : 0).replace('.', ',') + ' MB'; }
+  function manusiawi(g) { return g && g.message === 'Failed to fetch' ? 'Sambungan internet terputus. Periksa sambungan lalu coba lagi.' : (g && g.message) || 'Terjadi kesalahan.'; }
 
+  function kepala(mentah) {
+    return { 'Accept': mentah ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
+      'Authorization': 'Bearer ' + kunci, 'X-GitHub-Api-Version': '2022-11-28' };
+  }
   function api(jalur, opsi) {
     opsi = opsi || {};
-    var kepala = { 'Accept': opsi.mentah ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
-      'Authorization': 'Bearer ' + kunci, 'X-GitHub-Api-Version': '2022-11-28' };
-    return fetch(API + jalur, { method: opsi.method || 'GET', headers: kepala, cache: 'no-store',
+    return fetch(API + jalur, { method: opsi.method || 'GET', headers: kepala(opsi.mentah), cache: 'no-store',
       body: opsi.body ? JSON.stringify(opsi.body) : undefined });
   }
-  function galatApi(r) {
-    if (r.status === 401) return 'Kunci pengelola tidak berlaku lagi. Keluar, lalu masuk dengan kunci baru.';
-    if (r.status === 403 || r.status === 404) return 'Kunci ini tidak punya izin menulis ke situs. Periksa izin “Contents: Read and write”.';
-    if (r.status === 413 || r.status === 422) return 'Berkas ditolak server (mungkin terlalu besar).';
-    return 'Server menolak permintaan (kode ' + r.status + '). Coba lagi sebentar.';
+  function galatApi(kode) {
+    if (kode === 401) return 'Kunci pengelola tidak berlaku lagi. Keluar, lalu masuk dengan kunci baru.';
+    if (kode === 403 || kode === 404) return 'Kunci ini tidak punya izin menulis ke situs. Periksa izin “Contents: Read and write”.';
+    if (kode === 413 || kode === 422) return 'Berkas ditolak server (mungkin terlalu besar).';
+    return 'Server menolak permintaan (kode ' + kode + '). Coba lagi sebentar.';
   }
 
   /* ---------- Masuk ---------- */
@@ -51,6 +57,7 @@
     tampil($('bagian-masuk'), false);
     tampil($('bagian-panel'), true);
     muatDaftar();
+    lanjutkanBilaAda();
   }
 
   $('form-masuk').addEventListener('submit', function (ev) {
@@ -68,7 +75,7 @@
     tampil($('bagian-panel'), false); tampil($('bagian-masuk'), true);
   });
 
-  /* ---------- Formulir ---------- */
+  /* ---------- Laman 1: formulir unggah ---------- */
 
   var form = $('form-tambah');
   function jenis() { return form.elements.jenis.value; }
@@ -78,7 +85,8 @@
     tampil($('isian-pdf'), j !== 'album');
     tampil($('isian-album'), j === 'album');
     tampil($('isian-judul'), j !== 'warta');
-    $('judul-opsional').textContent = j === 'album' ? '(kosongkan untuk memakai nama folder)' : '';
+    $('judul').placeholder = j === 'album' ? 'Misalnya: Dokumentasi Kalipinusan' : 'Misalnya: Tata Ibadah Natal 2026';
+    $('judul-opsional').textContent = j === 'album' ? '(dipakai sebagai judul tautan saat dibagikan)' : '';
     $('tanggal-opsional').textContent = j === 'warta' ? '(kosongkan agar dibaca dari isi warta)' : '(kosongkan untuk hari ini)';
     $('tbl-terbit').textContent = { warta: 'Terbitkan warta', dokumen: 'Terbitkan dokumen', album: 'Terbitkan album' }[j];
     pesan($('galat-tambah'), '');
@@ -94,126 +102,6 @@
     if (f && jenis() === 'dokumen' && !$('judul').value) $('judul').value = f.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
   });
 
-  function bacaBerkas(f) {
-    return new Promise(function (ok, gagal) {
-      var r = new FileReader();
-      r.onload = function () { ok(String(r.result).split(',')[1]); };
-      r.onerror = function () { gagal(new Error('Berkas tidak bisa dibaca dari perangkat ini.')); };
-      r.readAsDataURL(f);
-    });
-  }
-
-  function taruh(nama, isiB64, catatan) {
-    return api('/contents/masuk/' + nama, { method: 'PUT', body: { message: catatan, content: isiB64, branch: C.cabang } })
-      .then(function (r) { if (!r.ok) throw new Error(galatApi(r)); return r.json(); });
-  }
-
-  function langkah(id, keadaan) { $(id).className = keadaan || ''; }
-
-  // Tunggu server menulis hasil tugas ini ke data/status.json
-  function tungguHasil(kode, komit) {
-    var mulai = Date.now();
-    function cek() {
-      if (Date.now() - mulai > 12 * 60000) {
-        throw new Error('Server belum selesai setelah 12 menit. Muat ulang halaman ini nanti untuk melihat hasilnya.');
-      }
-      return api('/contents/data/status.json?ref=' + C.cabang, { mentah: true })
-        .then(function (r) { return r.ok ? r.json() : []; })
-        .catch(function () { return []; })
-        .then(function (daftar) {
-          var h = (daftar || []).filter(function (s) { return s.id === kode; })[0];
-          if (h) return h;
-          // Kalau server gagal total (bukan karena isi berkas), jangan menunggu sampai habis
-          return api('/actions/runs?head_sha=' + komit + '&per_page=3').then(function (r) { return r.ok ? r.json() : null; })
-            .catch(function () { return null; })
-            .then(function (j) {
-              var lari = j && j.workflow_runs && j.workflow_runs[0];
-              if (lari && lari.status === 'completed' && lari.conclusion !== 'success') {
-                throw new Error('Server gagal memproses. Coba terbitkan lagi; bila tetap gagal, hubungi pengurus situs.');
-              }
-              var dtk = Math.round((Date.now() - mulai) / 1000);
-              $('proses-pesan').textContent = 'Menunggu server… ' + (dtk < 60 ? dtk + ' detik' : Math.floor(dtk / 60) + ' menit ' + (dtk % 60) + ' detik');
-              return tunggu(6000).then(cek);
-            });
-        });
-    }
-    return tunggu(8000).then(cek);
-  }
-
-  // Tunggu sampai halaman barunya benar-benar bisa dibuka
-  function tungguTayang(slug) {
-    var mulai = Date.now();
-    function cek() {
-      return fetch('../e/' + encodeURIComponent(slug) + '/?t=' + Date.now(), { cache: 'no-store' })
-        .then(function (r) { return r.ok; }, function () { return false; })
-        .then(function (ada) {
-          if (ada || Date.now() - mulai > 4 * 60000) return ada;
-          return tunggu(5000).then(cek);
-        });
-    }
-    return cek();
-  }
-
-  function jalankan(tugas, lampiran) {
-    var kode = new Date().toISOString().replace(/\D/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 6);
-    tampil(form, false); tampil($('proses'), true); tampil($('hasil-terbit'), false); tampil($('tbl-lagi'), false);
-    $('proses-judul').textContent = tugas.aksi === 'hapus' ? 'Sedang dihapus' : 'Sedang diterbitkan';
-    $('l-konversi').firstChild.textContent = tugas.aksi === 'hapus' ? 'Menghapus dari arsip ' : 'Mengubah menjadi flipbook ';
-    ['l-unggah', 'l-konversi', 'l-tayang'].forEach(function (id) { langkah(id, ''); });
-    langkah('l-unggah', 'jalan');
-    $('proses-pesan').textContent = lampiran ? 'Mengunggah PDF… jangan tutup halaman ini.' : '';
-    $('proses').scrollIntoView({ block: 'start', behavior: 'smooth' });
-
-    var awal = lampiran ? bacaBerkas(lampiran).then(function (b64) { return taruh(kode + '.pdf', b64, 'Unggah PDF'); }) : Promise.resolve();
-    return awal.then(function () {
-      return taruh(kode + '.json', b64teks(JSON.stringify(tugas)), tugas.aksi === 'hapus' ? 'Hapus terbitan' : 'Terbitan baru');
-    }).then(function (j) {
-      langkah('l-unggah', 'beres'); langkah('l-konversi', 'jalan');
-      return tungguHasil(kode, j.commit.sha);
-    }).then(function (h) {
-      if (!h.ok) throw new Error(h.pesan);
-      langkah('l-konversi', 'beres'); langkah('l-tayang', 'jalan');
-      $('proses-pesan').textContent = 'Hampir selesai…';
-      if (tugas.aksi === 'hapus') return tunggu(20000).then(function () { return h; });
-      return tungguTayang(h.slug).then(function () { return h; });
-    }).then(function (h) {
-      langkah('l-tayang', 'beres');
-      if (tugas.aksi === 'hapus') {
-        $('proses-judul').textContent = 'Sudah dihapus';
-        $('proses-pesan').textContent = 'Terbitan itu tidak lagi muncul di arsip.';
-      } else {
-        var url = alamatSitus() + '/e/' + h.slug + '/';
-        $('proses-judul').textContent = 'Sudah terbit';
-        $('proses-pesan').textContent = h.judul + ' — ' + h.jumlah + (h.jenis === 'album' ? ' foto' : ' halaman') + '.';
-        $('hasil-url').textContent = url;
-        $('hasil-buka').href = url;
-        $('hasil-wa').href = 'https://wa.me/?text=' + encodeURIComponent(h.judul + '\n' + url);
-        $('hasil-salin').textContent = 'Salin tautan';
-        $('hasil-salin').onclick = function () { salin(url, this); };
-        tampil($('hasil-terbit'), true);
-      }
-    }).catch(function (g) {
-      ['l-unggah', 'l-konversi', 'l-tayang'].forEach(function (id) { if ($(id).className === 'jalan') langkah(id, 'gagal'); });
-      $('proses-judul').textContent = 'Belum berhasil';
-      $('proses-pesan').textContent = g.message === 'Failed to fetch' ? 'Sambungan internet terputus. Periksa sambungan lalu coba lagi.' : g.message;
-    }).then(function () {
-      tampil($('tbl-lagi'), true);
-      muatDaftar();
-    });
-  }
-
-  function salin(teks, tbl) {
-    var beres = function () { tbl.textContent = 'Tautan tersalin'; };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(teks).then(beres, function () { prompt('Salin tautan ini:', teks); });
-    else prompt('Salin tautan ini:', teks);
-  }
-
-  $('tbl-lagi').addEventListener('click', function () {
-    form.reset(); aturIsian(); $('petunjuk-tanggal').textContent = '';
-    tampil($('proses'), false); tampil(form, true);
-    form.scrollIntoView({ block: 'start' });
-  });
-
   form.addEventListener('submit', function (ev) {
     ev.preventDefault();
     var j = jenis(), galat = $('galat-tambah');
@@ -224,6 +112,7 @@
       var folder = $('drive-folder').value.trim();
       if (!/drive\.google\.com\/drive\/(u\/\d+\/)?folders\//.test(folder)) return pesan(galat, 'Tempel tautan folder Google Drive (yang mengandung “/folders/”).');
       tugas.drive = folder;
+      if (+$('batas').value > 0) tugas.batas = Math.floor(+$('batas').value);
     } else {
       berkas = $('berkas').files[0] || null;
       var tautan = $('drive-pdf').value.trim();
@@ -244,12 +133,183 @@
     jalankan(tugas, berkas);
   });
 
+  /* ---------- Laman 2: layar kemajuan ---------- */
+
+  var persenKini = 0;
+  function layarMuat(langkah, judul, catatan) {
+    document.body.classList.add('sedang-muat');
+    tampil($('bagian-muat'), true); tampil($('muat-gagal'), false); tampil($('muat-jalan'), true);
+    $('muat-langkah').textContent = langkah;
+    $('muat-judul').textContent = judul;
+    $('muat-catatan').textContent = catatan || '';
+    persenKini = -1;
+    setPersen(0, '');
+    window.scrollTo(0, 0);
+  }
+  // Persen hanya berubah bila ada kabar nyata (byte terkirim / laporan server); tidak pernah mundur
+  function setPersen(p, rinci) {
+    p = Math.max(0, Math.min(100, Math.floor(p)));
+    if (p > persenKini) {
+      persenKini = p;
+      $('muat-angka').textContent = p;
+      $('muat-isi').style.width = p + '%';
+      $('muat-batang').setAttribute('aria-valuenow', p);
+      document.title = p + '% · ' + $('muat-judul').textContent;
+    }
+    if (rinci != null) $('muat-rinci').textContent = rinci;
+  }
+  function muatGagal(teks) {
+    tampil($('muat-jalan'), false); tampil($('muat-gagal'), true);
+    $('muat-galat').textContent = teks;
+    document.title = 'Belum berhasil · Kelola terbitan';
+  }
+  function tutupMuat() {
+    document.body.classList.remove('sedang-muat');
+    tampil($('bagian-muat'), false);
+    document.title = 'Kelola terbitan';
+    try { history.replaceState(null, '', location.pathname); } catch (_) {}
+  }
+  $('muat-kembali').addEventListener('click', function () { tutupMuat(); muatDaftar(); });
+
+  function bacaBerkas(f) {
+    return new Promise(function (ok, gagal) {
+      var r = new FileReader();
+      r.onload = function () { ok(String(r.result).split(',')[1]); };
+      r.onerror = function () { gagal(new Error('Berkas tidak bisa dibaca dari perangkat ini.')); };
+      r.readAsDataURL(f);
+    });
+  }
+
+  // Taruh satu berkas di masuk/ ; kemajuan(0..1) dipanggil sesuai byte yang benar-benar terkirim
+  function taruh(nama, isiB64, catatan, kemajuan) {
+    return new Promise(function (ok, gagal) {
+      var x = new XMLHttpRequest(), h = kepala(false);
+      x.open('PUT', API + '/contents/masuk/' + nama);
+      Object.keys(h).forEach(function (k) { x.setRequestHeader(k, h[k]); });
+      x.setRequestHeader('Content-Type', 'application/json');
+      if (kemajuan) x.upload.onprogress = function (e) { if (e.lengthComputable) kemajuan(e.loaded / e.total); };
+      x.onload = function () {
+        if (x.status >= 200 && x.status < 300) { try { ok(JSON.parse(x.responseText)); } catch (_) { gagal(new Error('Jawaban server tidak terbaca.')); } }
+        else gagal(new Error(galatApi(x.status)));
+      };
+      x.onerror = function () { gagal(new Error('Failed to fetch')); };
+      x.send(JSON.stringify({ message: catatan, content: isiB64, branch: C.cabang }));
+    });
+  }
+
+  function jalankan(tugas, lampiran) {
+    var kode = new Date().toISOString().replace(/\D/g, '').slice(0, 14) + '-' + Math.random().toString(36).slice(2, 6);
+    var hapus = tugas.aksi === 'hapus';
+    layarMuat('Langkah 1 dari 2', lampiran ? 'Mengunggah ke server' : 'Mengirim ke server', 'Jangan tutup atau tinggalkan halaman ini.');
+    var awal = Promise.resolve();
+    if (lampiran) {
+      // PDF memakai hampir seluruh rentang 0–100; berkas perintah yang kecil menyusul di ujung
+      awal = bacaBerkas(lampiran).then(function (b64) {
+        return taruh(kode + '.pdf', b64, 'Unggah PDF', function (f) {
+          setPersen(f * 97, mb(f * lampiran.size) + ' dari ' + mb(lampiran.size));
+        });
+      });
+    }
+    awal.then(function () {
+      if (lampiran) setPersen(97, 'Mencatat perintah terbit');
+      return taruh(kode + '.json', b64teks(JSON.stringify(tugas)), hapus ? 'Hapus terbitan' : 'Terbitan baru',
+        lampiran ? null : function (f) { setPersen(f * 99, ''); });
+    }).then(function (j) {
+      setPersen(100, 'Diterima server');
+      var tanda = kode + '.' + j.commit.sha + '.' + (hapus ? 'h' : 't');
+      try { history.replaceState(null, '', '#proses=' + tanda); } catch (_) {}
+      return tunggu(700).then(function () { return pantau(j.commit.sha, hapus); });
+    }).catch(function (g) { muatGagal(manusiawi(g)); });
+  }
+
+  // Langkah 2: baca laporan server sampai selesai
+  function pantau(sha, hapus) {
+    layarMuat('Langkah 2 dari 2', hapus ? 'Menghapus dari arsip' : 'Mengubah jadi flipbook',
+      'Dikerjakan server. Halaman ini boleh dibiarkan terbuka; biasanya 1–3 menit.');
+    var mulai = Date.now(), galatBeruntun = 0;
+
+    function status() {
+      return api('/commits/' + sha + '/statuses?per_page=10').then(function (r) {
+        if (!r.ok) throw new Error(galatApi(r.status));
+        return r.json();
+      }).then(function (arr) {
+        return arr.filter(function (s) { return s.context === 'flipbook'; })[0] || null;
+      });
+    }
+    function antre() {  // belum ada laporan: server masih antre / baru menyala
+      return api('/actions/runs?head_sha=' + sha + '&per_page=1').then(function (r) { return r.ok ? r.json() : null; })
+        .catch(function () { return null; })
+        .then(function (j) {
+          var lari = j && j.workflow_runs && j.workflow_runs[0];
+          if (!lari) return setPersen(1, 'Menunggu giliran di server');
+          if (lari.status === 'completed' && lari.conclusion !== 'success') throw new Error('Server gagal memproses. Coba terbitkan lagi.');
+          setPersen(lari.status === 'in_progress' ? 3 : 2, lari.status === 'in_progress' ? 'Server menyala' : 'Menunggu giliran di server');
+        });
+    }
+    function putar() {
+      if (Date.now() - mulai > 15 * 60000) throw new Error('Server belum selesai setelah 15 menit. Muat ulang halaman ini nanti untuk melihat kelanjutannya.');
+      return status().then(function (s) {
+        galatBeruntun = 0;
+        if (!s) return antre().then(function () { return tunggu(2500).then(putar); });
+        var bagi = String(s.description || '').split('|'), p = parseInt(bagi[0], 10) || 0, teks = bagi.slice(1).join('|');
+        if (s.state === 'failure' || s.state === 'error') throw new Error(teks || 'Server gagal memproses.');
+        if (s.state === 'success') { setPersen(100, 'Selesai'); return s; }
+        setPersen(p, teks);
+        return tunggu(2000).then(putar);
+      }, function (g) {
+        if (++galatBeruntun > 8) throw g;   // sambungan putus sebentar: coba lagi dulu
+        $('muat-rinci').textContent = 'Sambungan terputus, mencoba lagi…';
+        return tunggu(4000).then(putar);
+      });
+    }
+
+    return putar().then(function (s) {
+      if (hapus) {
+        return tunggu(1200).then(function () { tutupMuat(); muatDaftar(); pesan($('pesan-daftar'), 'Terbitan sudah dihapus.'); });
+      }
+      var slug = (/\/e\/([^/]+)\/?$/.exec(s.target_url || '') || [])[1];
+      if (!slug) { tutupMuat(); muatDaftar(); return; }
+      $('muat-rinci').textContent = 'Membuka flipbook…';
+      return tungguTayang(slug).then(function () {
+        try { history.replaceState(null, '', location.pathname); } catch (_) {}
+        // Laman 3: flipbook-nya sendiri, dengan lembar bagikan terbuka
+        location.href = '../e/' + encodeURIComponent(slug) + '/?baru=1';
+      });
+    }).catch(function (g) { muatGagal(manusiawi(g)); });
+  }
+
+  // Pastikan halaman barunya sudah benar-benar bisa dibuka sebelum pindah
+  function tungguTayang(slug) {
+    var mulai = Date.now();
+    function cek() {
+      return fetch('../e/' + encodeURIComponent(slug) + '/?t=' + Date.now(), { cache: 'no-store' })
+        .then(function (r) { return r.ok; }, function () { return false; })
+        .then(function (ada) {
+          if (ada || Date.now() - mulai > 3 * 60000) return ada;
+          return tunggu(3000).then(cek);
+        });
+    }
+    return cek();
+  }
+
+  // Halaman dimuat ulang saat server masih bekerja: lanjutkan pemantauan
+  function lanjutkanBilaAda() {
+    var m = /#proses=[\w-]+\.([0-9a-f]{40})\.([ht])/.exec(location.hash);
+    if (m) pantau(m[1], m[2] === 'h');
+  }
+
   /* ---------- Daftar terbitan ---------- */
+
+  function salin(teks, tbl) {
+    var beres = function () { tbl.textContent = 'Tautan tersalin'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(teks).then(beres, function () { prompt('Salin tautan ini:', teks); });
+    else prompt('Salin tautan ini:', teks);
+  }
 
   function muatDaftar() {
     var ul = $('daftar-terbit'), info = $('pesan-daftar');
     api('/contents/data/edisi.json?ref=' + C.cabang, { mentah: true })
-      .then(function (r) { if (r.status === 404) return []; if (!r.ok) throw new Error(galatApi(r)); return r.json(); })
+      .then(function (r) { if (r.status === 404) return []; if (!r.ok) throw new Error(galatApi(r.status)); return r.json(); })
       .then(function (daftar) {
         daftar.sort(function (a, b) { return a.tanggal < b.tanggal ? 1 : -1; });
         ul.textContent = '';
@@ -258,8 +318,9 @@
           var li = document.createElement('li'), isi = document.createElement('div'), alat = document.createElement('div');
           var t = ed.tanggal.split('-');
           var jdl = document.createElement('b'), ket = document.createElement('span');
+          var tgl = (+t[2]) + ' ' + BULAN[+t[1] - 1] + ' ' + t[0];
           jdl.textContent = ed.judul;
-          ket.textContent = (+t[2]) + ' ' + BULAN[+t[1] - 1] + ' ' + t[0] + ' · ' + NAMA_JENIS[ed.jenis] + ' · ' + ed.halaman + (ed.jenis === 'album' ? ' foto' : ' hal.');
+          ket.textContent = tgl + ' · ' + NAMA_JENIS[ed.jenis] + ' · ' + ed.halaman + (ed.jenis === 'album' ? ' foto' : ' hal.');
           isi.appendChild(jdl); isi.appendChild(ket);
           var url = alamatSitus() + '/e/' + ed.slug + '/';
           var buka = document.createElement('a'); buka.href = '../e/' + ed.slug + '/'; buka.target = '_blank'; buka.rel = 'noopener'; buka.textContent = 'Buka';
@@ -267,7 +328,7 @@
           sal.addEventListener('click', function () { salin(url, sal); });
           var hps = document.createElement('button'); hps.type = 'button'; hps.className = 'bahaya'; hps.textContent = 'Hapus';
           hps.addEventListener('click', function () {
-            if (!confirm('Hapus “' + ed.judul + '” (' + ket.textContent.split(' · ')[0] + ') dari situs?\nTautan yang sudah dibagikan tidak akan bisa dibuka lagi.')) return;
+            if (!confirm('Hapus “' + ed.judul + '” (' + tgl + ') dari situs?\nTautan yang sudah dibagikan tidak akan bisa dibuka lagi.')) return;
             jalankan({ aksi: 'hapus', slug: ed.slug }, null);
           });
           alat.className = 'alat'; alat.appendChild(buka); alat.appendChild(sal); alat.appendChild(hps);

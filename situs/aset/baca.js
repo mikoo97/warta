@@ -45,7 +45,7 @@
     width: D.l, height: D.t, size: 'stretch',
     minWidth: 1, maxWidth: 8000, minHeight: 1, maxHeight: 12000,
     autoSize: false, showCover: true, usePortrait: true,
-    drawShadow: true, maxShadowOpacity: 0.32, flippingTime: hemat ? 200 : 720,
+    drawShadow: true, maxShadowOpacity: 0.3, flippingTime: hemat ? 200 : 900,
     mobileScrollSupport: false, swipeDistance: 28, showPageCorners: !sentuh,
     disableFlipByClick: true, startPage: awal, startZIndex: 1
   });
@@ -63,6 +63,35 @@
   window.addEventListener('resize', function () { aturMode(); zoomKe(1); });
   aturMode();
   pf.loadFromHTML(halaman);
+
+  // Semua halaman lentur, termasuk sampul: warta adalah buklet kertas, bukan buku bersampul keras.
+  // (Pustaka mengeraskan sampul tiap kali menyusun ulang halaman, jadi dilenturkan lagi sesudahnya.)
+  var koleksi = pf.getPageCollection();
+  function lenturkan() {
+    for (var i = 0; i < N; i++) { var h = pf.getPage(i); h.setDensity('soft'); h.setDrawingDensity('soft'); }
+  }
+  var susunAsli = koleksi.createSpread.bind(koleksi);
+  koleksi.createSpread = function () { susunAsli(); lenturkan(); };
+  lenturkan();
+
+  // Animasi balik: lamanya sama di semua ukuran layar, mulai pelan dan mendarat pelan
+  var LAMA = hemat ? 200 : 900;
+  var mesin = pf.getRender(), animasiAsli = mesin.startAnimation.bind(mesin);
+  mesin.startAnimation = function (bingkai, lama, selesai) {
+    var n = bingkai.length;
+    if (n > 2 && !hemat) {
+      lama = Math.max(260, Math.min(1, n / (2 * pf.getBoundsRect().pageWidth)) * LAMA);
+      var jumlah = Math.max(2, Math.round(lama / 8)), halus = [];
+      for (var k = 0; k < jumlah; k++) {
+        var t = k / (jumlah - 1);
+        var e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        halus.push(bingkai[Math.min(n - 1, Math.round(e * (n - 1)))]);
+      }
+      bingkai = halus;
+    }
+    animasiAsli(bingkai, lama, selesai);
+  };
+  buku.style.setProperty('--balik', LAMA + 'ms');
 
   function tegak() { return pf.getOrientation() === 'portrait'; }
   function indeks() { return pf.getCurrentPageIndex(); }
@@ -392,17 +421,24 @@
   }
 
   var tautan = location.origin + location.pathname;
-  var pesan = D.judul + ' — ' + D.gereja;
-  $('tbl-bagi').addEventListener('click', function () {
-    if (navigator.share && sentuh) {
-      navigator.share({ title: D.judul, text: pesan, url: tautan }).catch(function () {});
+  var pesan = D.judul;
+  function bukaBagi(lembarSaja) {
+    if (navigator.share && sentuh && !lembarSaja) {
+      navigator.share({ title: D.judul, url: tautan }).catch(function () {});
       return;
     }
     $('bagi-wa').href = 'https://wa.me/?text=' + encodeURIComponent(pesan + '\n' + tautan);
     $('bagi-url').textContent = tautan;
     $('bagi-salin').textContent = 'Salin tautan';
     lembarBagi.showModal();
-  });
+  }
+  $('tbl-bagi').addEventListener('click', function () { bukaBagi(false); });
+  // Datang dari panel pengelola setelah terbit: langsung tawarkan untuk dibagikan
+  if (/[?&]baru=1/.test(location.search)) {
+    try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {}
+    $('jdl-bagi').textContent = 'Sudah terbit. Bagikan sekarang';
+    bukaBagi(true);
+  }
   $('bagi-salin').addEventListener('click', function () {
     var tbl = this;
     function beres() { tbl.textContent = 'Tautan tersalin'; }
@@ -415,13 +451,41 @@
     else manual();
   });
 
-  // Layar penuh (hanya di komputer)
+  // Layar penuh. Browser tidak mengizinkan layar penuh tanpa sentuhan, jadi sentuhan/klik pertama
+  // di halaman langsung memicunya. Kalau pembaca keluar sendiri, tidak dipaksa masuk lagi.
   var tblLayar = $('tbl-layar');
-  if (document.fullscreenEnabled && !sentuh) {
+  var mintaPenuh = akar.requestFullscreen || akar.webkitRequestFullscreen;
+  var keluarPenuh = document.exitFullscreen || document.webkitExitFullscreen;
+  function sedangPenuh() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function masukPenuh() {
+    try {
+      var janji = mintaPenuh.call(akar, { navigationUI: 'hide' });
+      if (janji && janji.catch) janji.catch(function () {});
+    } catch (_) {}
+  }
+  if (mintaPenuh && (document.fullscreenEnabled || document.webkitFullscreenEnabled)) {
     tblLayar.hidden = false;
     tblLayar.addEventListener('click', function () {
-      if (document.fullscreenElement) document.exitFullscreen(); else akar.requestFullscreen().catch(function () {});
+      if (sedangPenuh()) keluarPenuh.call(document); else masukPenuh();
     });
+    var otomatis = true;
+    var pertama = function (e) {
+      if (!otomatis) return;
+      if (e.type === 'keydown' && (e.key === 'Escape' || e.key === 'Tab' || e.altKey || e.ctrlKey || e.metaKey)) return;
+      var t = e.target;
+      if (t && t.closest && t.closest('a[href], dialog, #tbl-layar')) return;  // tautan pindah halaman; lembar; tombolnya sendiri
+      otomatis = false;
+      if (!sedangPenuh()) masukPenuh();
+    };
+    ['pointerup', 'touchend', 'click', 'keydown'].forEach(function (n) { window.addEventListener(n, pertama, true); });
+    var ganti = function () {
+      var penuh = sedangPenuh();
+      if (penuh) otomatis = false;
+      tblLayar.setAttribute('aria-label', penuh ? 'Keluar dari layar penuh' : 'Layar penuh');
+      tblLayar.classList.toggle('aktif', penuh);
+    };
+    document.addEventListener('fullscreenchange', ganti);
+    document.addEventListener('webkitfullscreenchange', ganti);
   }
 
   /* ---------- Petunjuk singkat untuk beberapa kunjungan pertama ---------- */

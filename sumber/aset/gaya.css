@@ -219,6 +219,7 @@ body.baca { min-height: 100vh; min-height: 100dvh; }
 .palang-judul { display: grid; min-width: 0; margin-left: auto; text-align: right; line-height: 1.2; padding-right: 6px; }
 .palang-judul strong { font-family: var(--judul); font-weight: 400; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .palang-judul span { font-size: 13.5px; color: var(--di-kain-redup); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ikon-saja.aktif { background: rgba(127, 127, 127, .28); }
 .ikon-saja {
   display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; flex: none;
 }
@@ -262,7 +263,7 @@ html.siap .panggung {
   -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
 }
 html.siap .lensa { position: absolute; inset: 0; padding: 12px 10px; transform-origin: 0 0; display: flex; align-items: center; }
-html.siap .buku { display: block; flex: 1; width: 100%; max-width: none; margin: 0; padding: 0; min-width: 0 !important; min-height: 0 !important; transition: transform .6s ease; }
+html.siap .buku { display: block; flex: 1; width: 100%; max-width: none; margin: 0; padding: 0; min-width: 0 !important; min-height: 0 !important; transition: transform var(--balik, .9s) cubic-bezier(.65, 0, .35, 1); }
 html.siap .hal { overflow: hidden; box-shadow: 0 1px 3px rgba(0, 0, 0, .3), 0 10px 30px -8px rgba(0, 0, 0, .45); }
 html.siap .hal img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
 html.zoom .panggung { cursor: grab; }
@@ -372,7 +373,7 @@ body.kelola { background: var(--kertas); }
 .formulir label, .formulir legend { display: block; font-weight: 650; margin-bottom: 6px; padding: 0; }
 .formulir label.atau { margin-top: 14px; font-weight: 500; color: var(--redup); }
 .formulir input[type="text"], .formulir input[type="url"], .formulir input[type="password"],
-.formulir input[type="date"], .formulir input[type="file"] {
+.formulir input[type="date"], .formulir input[type="file"], .formulir input[type="number"] {
   width: 100%; padding: 13px 14px; border: 1.5px solid #AEB5AC; border-radius: 12px; background: var(--putih); font-size: 17px;
 }
 .formulir input:focus-visible { outline: 3px solid rgba(46, 64, 82, .35); outline-offset: 0; border-color: var(--tinta); }
@@ -432,6 +433,28 @@ body.kelola { background: var(--kertas); }
 .daftar-terbit .bahaya { color: #8C2026; border-color: #D9A9AB; margin-left: auto; }
 .keluar { margin-top: 36px; }
 .tautan-tombol { border: 0; background: none; padding: 0; color: var(--redup); text-decoration: underline; font-size: 15px; }
+/* Laman kemajuan: satu angka besar yang hanya berubah bila ada kabar nyata */
+body.sedang-muat { overflow: hidden; }
+body.sedang-muat .palang, body.sedang-muat .hak-cipta { display: none; }
+.muat {
+  position: fixed; inset: 0; z-index: 20; display: grid; align-content: center; justify-items: start;
+  padding: 32px max(24px, calc(50vw - 300px)); overflow: auto;
+  background-color: var(--kain-dalam); color: var(--di-kain);
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, .025) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .04) 0 1px, transparent 1px 3px);
+}
+.muat > div { width: 100%; }
+.muat-langkah { margin: 0 0 10px; font-size: 14px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--di-kain-redup); }
+.kelola .muat h1 { margin: 0; font-size: clamp(30px, 8vw, 44px); line-height: 1.08; }
+.muat-persen { margin: 18px 0 6px; font-family: var(--judul); font-size: clamp(120px, 38vw, 220px); line-height: .9; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.muat-persen small { font-size: .34em; margin-left: .08em; color: var(--aksen); letter-spacing: 0; }
+.muat-batang { height: 8px; border-radius: 999px; background: rgba(255, 255, 255, .16); overflow: hidden; }
+.muat-batang i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--aksen); transition: width .35s ease; }
+.muat-rinci { margin: 14px 0 0; min-height: 1.5em; font-size: 18px; font-weight: 600; }
+.muat-catatan { margin: 6px 0 0; color: var(--di-kain-redup); font-size: 15.5px; max-width: 44ch; }
+.tombol-kelola.terang { margin-top: 26px; background: var(--aksen); border-color: var(--aksen); color: var(--di-aksen); }
+#muat-gagal h1 { max-width: 22ch; }
 @media (max-width: 460px) { .pilih-jenis { grid-template-columns: 1fr; } }
 @media (min-width: 760px) { .daftar-terbit li { grid-template-columns: 1fr auto; align-items: center; } }
 
