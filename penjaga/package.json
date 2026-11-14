@@ -1,0 +1,9 @@
+{
+  "name": "penjaga-warta",
+  "private": true,
+  "type": "module",
+  "description": "Penjaga pintu panel pengelola Warta Flipbook (fungsi Netlify)",
+  "dependencies": {
+    "@netlify/blobs": "^11.1.9"
+  }
+}

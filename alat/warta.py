@@ -68,6 +68,8 @@ ATUR_BAWAAN = {
     "alamat_situs": "",
     "repo": "",
     "cabang": "main",
+    "penjaga": "",
+    "google_client_id": "",
 }
 
 
@@ -743,7 +745,8 @@ def bangun():
     (SITUS / "kelola" / "index.html").write_text(isi_templat("kelola.html", {
         "v": v, "pengelola": e(atur["pengelola"]),
         "hak_cipta": e(f"© {dt.date.today().year} {atur['hak_cipta']}"),
-        "data": json.dumps({"repo": atur["repo"], "cabang": atur["cabang"], "situs": atur["alamat_situs"]}),
+        "data": json.dumps({"repo": atur["repo"], "cabang": atur["cabang"], "situs": atur["alamat_situs"],
+                            "penjaga": atur["penjaga"].strip(), "google": atur["google_client_id"].strip()}),
     }), encoding="utf-8")
 
     # indeks pencarian per tahun (disandikan base64)

@@ -1,0 +1,16 @@
+# Penjaga pintu panel pengelola. Dipasang sebagai situs Netlify tersendiri;
+# folder dasar (base directory) = penjaga
+[build]
+  publish = "public"
+  command = "echo 'tanpa proses bangun'"
+  # Repo ini berubah tiap ada unggahan; bangun ulang hanya bila folder penjaga/ yang berubah
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- ."
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

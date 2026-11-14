@@ -23,7 +23,16 @@
   <!-- Masuk -->
   <section id="bagian-masuk" hidden>
     <h1>Masuk pengelola</h1>
-    <p class="pengantar">Halaman ini untuk tim yang mengunggah warta. Tempel kunci pengelola sekali saja; perangkat ini akan mengingatnya.</p>
+
+    <div id="masuk-google" hidden>
+      <p class="pengantar">Halaman ini untuk tim yang mengunggah warta. Masuk dengan akun Google yang sudah didaftarkan sebagai pengelola.</p>
+      <div id="tombol-google" class="tombol-google"></div>
+      <p class="pesan galat" id="galat-google" role="alert" hidden></p>
+      <p class="petunjuk-isian">Belum terdaftar? Minta admin utama menambahkan alamat Gmail Anda.</p>
+    </div>
+
+    <div id="masuk-kunci" hidden>
+      <p class="pengantar">Halaman ini untuk tim yang mengunggah warta. Tempel kunci pengelola sekali saja; perangkat ini akan mengingatnya.</p>
     <form id="form-masuk" class="formulir">
       <label for="kunci">Kunci pengelola</label>
       <input type="password" id="kunci" autocomplete="off" spellcheck="false" placeholder="github_pat_…" required>
@@ -41,6 +50,7 @@
       </ol>
       <p>Kunci ini seperti kata sandi: bagikan hanya ke sesama pengelola.</p>
     </details>
+    </div>
   </section>
 
   <!-- Panel -->
@@ -88,7 +98,21 @@
     <p class="pesan" id="pesan-daftar">Memuat daftar…</p>
     <ul class="daftar-terbit" id="daftar-terbit"></ul>
 
-    <p class="keluar"><button type="button" class="tautan-tombol" id="tbl-keluar">Keluar dari perangkat ini</button></p>
+    <div id="bagian-pengelola" hidden>
+      <h2 class="jdl-daftar">Pengelola</h2>
+      <p class="pesan">Orang-orang ini bisa mengunggah dan menghapus terbitan. Hanya admin utama yang bisa mengubah daftar ini.</p>
+      <ul class="daftar-terbit" id="daftar-pengelola"></ul>
+      <form id="form-pengelola" class="tambah-pengelola">
+        <label for="email-pengelola">Tambah pengelola</label>
+        <div>
+          <input type="email" id="email-pengelola" placeholder="nama@gmail.com" autocomplete="off" inputmode="email" required>
+          <button type="submit" class="tombol-kelola utama">Tambahkan</button>
+        </div>
+        <p class="pesan galat" id="galat-pengelola" role="alert" hidden></p>
+      </form>
+    </div>
+
+    <p class="keluar"><span id="siapa"></span> <button type="button" class="tautan-tombol" id="tbl-keluar">Keluar dari perangkat ini</button></p>
   </section>
 
   <!-- Laman 2: kemajuan (mengunggah, lalu mengubah jadi flipbook) -->

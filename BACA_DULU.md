@@ -34,3 +34,16 @@ Mengunggah warta dengan tanggal yang sama akan mengganti edisi lama (berguna unt
     python alat/warta.py lihat
 
 Pustaka pihak ketiga: page-flip (StPageFlip, MIT), fon Young Serif dan Atkinson Hyperlegible Next (OFL).
+
+## Masuk dengan Google (penjaga pintu)
+
+Folder `penjaga/` berisi fungsi server kecil (Netlify) yang memeriksa login Google, mencocokkan
+email dengan daftar pengelola, lalu meneruskan unggahan ke repo ini. Kunci GitHub hanya disimpan
+di sana. Uji tanpa jaringan: `cd penjaga && node uji.mjs`.
+
+Variabel lingkungan di Netlify: `GITHUB_TOKEN`, `GOOGLE_CLIENT_ID`, `ADMIN_UTAMA`, `SESI_RAHASIA`.
+Di `pengaturan.json`: `penjaga` (alamat fungsi) dan `google_client_id`. Selama keduanya kosong,
+panel memakai cara lama (kunci pengelola).
+
+- Admin utama ditentukan lewat `ADMIN_UTAMA` di Netlify dan bisa menambah/mencabut pengelola dari panel.
+- Unggah PDF langsung lewat penjaga dibatasi 4 MB; yang lebih besar: unggah ke Google Drive lalu tempel tautannya.
