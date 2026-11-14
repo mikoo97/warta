@@ -24,6 +24,30 @@
     "ditambahkan": "2026-11-14T17:25:34"
   },
   {
+    "slug": "ibadah-padang-tpi",
+    "jenis": "album",
+    "tanggal": "2026-07-10",
+    "judul": "Ibadah Padang TPI",
+    "nama_minggu": "",
+    "warna": "netral",
+    "tema": "",
+    "bacaan": "",
+    "halaman": 50,
+    "ukuran": [
+      [
+        1064,
+        1600
+      ]
+    ],
+    "sampul": [
+      675,
+      1200
+    ],
+    "sumber": "https://drive.google.com/drive/folders/14r2lTuAr_G5CJdLHMkmc24WrbeHbdf4U",
+    "lain": 44,
+    "ditambahkan": "2026-11-15T05:40:05"
+  },
+  {
     "slug": "2026-11-15",
     "jenis": "warta",
     "tanggal": "2026-11-15",
