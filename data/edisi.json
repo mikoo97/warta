@@ -89,5 +89,29 @@
     ],
     "pdf": "warta-jemaat-2026-11-15.pdf",
     "ditambahkan": "2026-11-15T08:08:12"
+  },
+  {
+    "slug": "kunjungan-peniwen",
+    "jenis": "album",
+    "tanggal": "2026-11-16",
+    "judul": "Kunjungan Peniwen",
+    "nama_minggu": "",
+    "warna": "netral",
+    "tema": "",
+    "bacaan": "",
+    "halaman": 50,
+    "ukuran": [
+      [
+        1600,
+        1000
+      ]
+    ],
+    "sampul": [
+      675,
+      1200
+    ],
+    "sumber": "https://drive.google.com/drive/folders/1NngFwSK7nMBDdjxlS5W1aKNOqLZDpr6b",
+    "lain": 172,
+    "ditambahkan": "2026-11-16T22:51:03"
   }
 ]

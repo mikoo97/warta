@@ -42,5 +42,16 @@
     "jumlah": 7,
     "pesan": "Berhasil diterbitkan.",
     "url": "https://warta.masmik.id/e/2026-11-15/"
+  },
+  {
+    "id": "20261116155036-l1ey",
+    "waktu": "2026-11-16T15:50:57+00:00",
+    "ok": true,
+    "slug": "kunjungan-peniwen",
+    "judul": "Kunjungan Peniwen",
+    "jenis": "album",
+    "jumlah": 50,
+    "pesan": "Berhasil diterbitkan.",
+    "url": "https://warta.masmik.id/e/kunjungan-peniwen/"
   }
 ]
