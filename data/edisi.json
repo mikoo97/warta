@@ -113,5 +113,44 @@
     "sumber": "https://drive.google.com/drive/folders/1NngFwSK7nMBDdjxlS5W1aKNOqLZDpr6b",
     "lain": 172,
     "ditambahkan": "2026-11-16T22:51:03"
+  },
+  {
+    "slug": "2026-11-22",
+    "jenis": "warta",
+    "tanggal": "2026-11-22",
+    "judul": "Warta Jemaat",
+    "nama_minggu": "Minggu Kristus Raja",
+    "warna": "putih",
+    "tema": "Semua Bisa Bilang Sayang",
+    "bacaan": "Matius 25:31 – 46",
+    "halaman": 6,
+    "ukuran": [
+      [
+        1100,
+        1439
+      ],
+      [
+        1100,
+        1439
+      ],
+      [
+        1100,
+        1439
+      ],
+      [
+        1100,
+        1439
+      ],
+      [
+        1100,
+        1439
+      ],
+      [
+        1100,
+        1439
+      ]
+    ],
+    "pdf": "warta-jemaat-2026-11-22.pdf",
+    "ditambahkan": "2026-11-21T20:52:12"
   }
 ]

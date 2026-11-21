@@ -53,5 +53,16 @@
     "jumlah": 50,
     "pesan": "Berhasil diterbitkan.",
     "url": "https://warta.masmik.id/e/kunjungan-peniwen/"
+  },
+  {
+    "id": "20261121135134-pny2",
+    "waktu": "2026-11-21T13:52:02+00:00",
+    "ok": true,
+    "slug": "2026-11-22",
+    "judul": "Warta Jemaat 22 November 2026",
+    "jenis": "warta",
+    "jumlah": 6,
+    "pesan": "Berhasil diterbitkan.",
+    "url": "https://warta.masmik.id/e/2026-11-22/"
   }
 ]
