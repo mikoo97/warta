@@ -359,14 +359,21 @@
   }
 
   // Pastikan halaman barunya sudah benar-benar bisa dibuka sebelum pindah
+  // Alamat persis yang nanti dibagikan (tanpa ?t=), supaya yang dicek adalah salinan di CDN yang juga
+  // akan dibaca WhatsApp. Lalu jeda sebentar agar server CDN lain ikut segar sebelum tautan dibagikan;
+  // kalau WhatsApp keburu membaca versi lama, pratinjaunya kosong dan tersimpan di WA.
   function tungguTayang(slug) {
-    var mulai = Date.now();
+    var mulai = Date.now(), url = '../e/' + encodeURIComponent(slug) + '/';
     function cek() {
-      return fetch('../e/' + encodeURIComponent(slug) + '/?t=' + Date.now(), { cache: 'no-store' })
-        .then(function (r) { return r.ok; }, function () { return false; })
-        .then(function (ada) {
-          if (ada || Date.now() - mulai > 3 * 60000) return ada;
-          return tunggu(3000).then(cek);
+      return fetch(url, { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : ''; }, function () { return ''; })
+        .then(function (isi) {
+          if (isi.indexOf('og:image') >= 0) {
+            $('muat-rinci').textContent = 'Menyiapkan pratinjau tautan…';
+            return tunggu(25000).then(function () { return true; });
+          }
+          if (Date.now() - mulai > 4 * 60000) return false;
+          return tunggu(4000).then(cek);
         });
     }
     return cek();
